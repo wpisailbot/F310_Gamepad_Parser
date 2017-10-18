@@ -29,6 +29,11 @@ from websocket import create_connection
 
 class ParserMain(threading.Thread):
   def __init__(self):
+    self.rudder = 0.
+    self.winch = 0.
+    self.winch_cnt = 0
+    self.up = True
+    self.ws = create_connection("ws://" + sys.argv[1] + ":13000")
     # Create bus object
     self.bus = Bus()
     # Create a dictionary to be used to keep states from joy_core
@@ -46,7 +51,6 @@ class ParserMain(threading.Thread):
         'Byte6/INT':0, 'Byte7/INT':0}
     # Launch Parser_Core as a seperate thread to parse the gamepad
     self.parsercore = ParserCore(self.bus, self.states)
-    self.ws = create_connection("ws://" + sys.argv[1] + ":13000")
 
   def run(self):
     # Description: Polls the gamepad states and displays their current
@@ -57,13 +61,36 @@ class ParserMain(threading.Thread):
       self.parsercore.run()
       self.ws.send(self.create_msg())
       print(self.create_msg())
+      continue
+      self.rudder += 0.05 if self.up else -0.05
+      if self.rudder > 1.:
+        self.up = False
+      elif self.rudder < -1.:
+        self.up = True
+      if self.winch_cnt > 30:
+        self.winch = 0
+        self.winch_cnt = 0
+      elif self.winch_cnt > 20:
+        self.winch = -6
+      elif self.winch_cnt > 10:
+        self.winch = 6
+      self.winch_cnt += .5
+      time.sleep(0.1)
 
   def create_msg(self):
-    rudder = self.states['LJ/Left'] + self.states['LJ/Right']
-    rudder = rudder / 127.
-    winch = self.states['RJ/Left'] + self.states['RJ/Right']
-    winch = 0 * winch * 6. / 127.
-    string = '{"manual_sail_cmd":{"voltage":%f},"manual_rudder_cmd":{"pos":%f}}' % (winch, rudder)
+    rudder = self.states['RJ/Left'] + self.states['RJ/Right']
+    rudder = -rudder / 127.
+    winch = self.states['LJ/Left'] + self.states['LJ/Right']
+    winch = -winch * 6. / 127.
+    string = '{"manual_sail_cmd":{"voltage":%f},"manual_rudder_cmd":{"pos":%f}' % (winch, rudder)
+    # 1 = auto, 4 = Filtered RC, 2 = WiFi, 3 = disabled
+    mode = 2 if self.states['Y'] else 4 if self.states['B'] else 1 if self.states['A'] else 3 if self.states['X'] else None
+    if mode != None:
+      string += ',"control_mode":{"rudder_mode":%d,"winch_mode":%d}' % (mode, mode)
+    elif self.states['RB']:
+      string += ',"control_mode":{"rudder_mode":2,"winch_mode":1}'
+    string += "}"
+    #string = '{"manual_sail_cmd":{"voltage":%f},"manual_rudder_cmd":{"pos":%f}}' % (self.winch, self.rudder)
     return string
 
 if __name__ == '__main__':
