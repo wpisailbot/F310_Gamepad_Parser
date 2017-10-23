@@ -82,11 +82,13 @@ class ParserMain(threading.Thread):
     rudder = -rudder / 127.
     winch = self.states['LJ/Left'] + self.states['LJ/Right']
     winch = -winch * 6. / 127.
-    string = '{"manual_sail_cmd":{"voltage":%f},"manual_rudder_cmd":{"pos":%f}' % (winch, rudder)
+    ballast = self.states['RT'] - self.states['LT']
+    ballast = ballast * 90. / 255.
+    string = '{"manual_sail_cmd":{"voltage":%f},"manual_rudder_cmd":{"pos":%f}, "manual_ballast_cmd":{"vel":%f}' % (winch, rudder, ballast)
     # 1 = auto, 4 = Filtered RC, 2 = WiFi, 3 = disabled
     mode = 2 if self.states['Y'] else 4 if self.states['B'] else 1 if self.states['A'] else 3 if self.states['X'] else None
     if mode != None:
-      string += ',"control_mode":{"rudder_mode":%d,"winch_mode":%d}' % (mode, mode)
+      string += ',"control_mode":{"rudder_mode":%d,"winch_mode":%d,"ballast_mode":%d}' % (mode, mode, mode)
     elif self.states['RB']:
       string += ',"control_mode":{"rudder_mode":2,"winch_mode":1}'
     string += "}"
