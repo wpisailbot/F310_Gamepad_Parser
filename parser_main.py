@@ -1,3 +1,4 @@
+#!/usr/bin/python
 ############ Logitech F310 Gamepad Controller Main - parser_main.py ##########
 # Original Author: John Zeller
 # Description: Parser_Main polls the data in a python dictionary to check the
@@ -25,6 +26,7 @@ import threading
 from bus import *
 from parser_core import *
 import time
+import numpy as np
 from websocket import create_connection
 
 class ParserMain(threading.Thread):
@@ -61,25 +63,13 @@ class ParserMain(threading.Thread):
       self.parsercore.run()
       self.ws.send(self.create_msg())
       print(self.create_msg())
-      continue
-      self.rudder += 0.05 if self.up else -0.05
-      if self.rudder > 1.:
-        self.up = False
-      elif self.rudder < -1.:
-        self.up = True
-      if self.winch_cnt > 30:
-        self.winch = 0
-        self.winch_cnt = 0
-      elif self.winch_cnt > 20:
-        self.winch = -6
-      elif self.winch_cnt > 10:
-        self.winch = 6
-      self.winch_cnt += .5
-      time.sleep(0.1)
 
   def create_msg(self):
     rudder = self.states['RJ/Left'] + self.states['RJ/Right']
-    rudder = -rudder / 127.
+    deadband_radius = 20.0
+    rudder -= deadband_radius * np.sign(rudder) # Get rid of deadband
+    rudder = -rudder / (127. - deadband_radius) # Scale to -1 to 1
+    rudder *= 0.5 # Scale to useful values of rudder
     winch = self.states['LJ/Left'] + self.states['LJ/Right']
     winch = -winch * 6. / 127.
     string = '{"manual_sail_cmd":{"voltage":%f},"manual_rudder_cmd":{"pos":%f}' % (winch, rudder)
@@ -90,7 +80,6 @@ class ParserMain(threading.Thread):
     elif self.states['RB']:
       string += ',"control_mode":{"rudder_mode":2,"winch_mode":1}'
     string += "}"
-    #string = '{"manual_sail_cmd":{"voltage":%f},"manual_rudder_cmd":{"pos":%f}}' % (self.winch, self.rudder)
     return string
 
 if __name__ == '__main__':
