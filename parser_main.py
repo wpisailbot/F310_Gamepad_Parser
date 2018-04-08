@@ -71,7 +71,7 @@ class ParserMain(threading.Thread):
     rudder = -rudder / (127. - deadband_radius) # Scale to -1 to 1
     rudder *= 0.5 # Scale to useful values of rudder
     winch = self.states['LJ/Left'] + self.states['LJ/Right']
-    winch = -winch * 6. / 127.
+    winch = -winch * 12. / 127.
     ballast = self.states['RT'] - self.states['LT']
     ballast = ballast * 90. / 255.
     string = '{"manual_sail_cmd":{"voltage":%f},"manual_rudder_cmd":{"pos":%f}, "manual_ballast_cmd":{"vel":%f}' % (winch, rudder, ballast)
