@@ -74,13 +74,30 @@ class ParserMain(threading.Thread):
     winch = -winch * 12. / 127.
     ballast = self.states['RT'] - self.states['LT']
     ballast = ballast * 90. / 255.
+
+    # Generate the string for manual control commands
     string = '{"manual_sail_cmd":{"voltage":%f},"manual_rudder_cmd":{"pos":%f}, "manual_ballast_cmd":{"vel":%f}' % (winch, rudder, ballast)
+
+    # Generate the set mode commands
     # 1 = auto, 4 = Filtered RC, 2 = WiFi, 3 = disabled
     mode = 2 if self.states['Y'] else 4 if self.states['B'] else 1 if self.states['A'] else 3 if self.states['X'] else None
     if mode != None:
       string += ',"control_mode":{"rudder_mode":%d,"winch_mode":%d,"ballast_mode":%d}' % (mode, mode, mode)
     elif self.states['RB']:
       string += ',"control_mode":{"rudder_mode":2,"winch_mode":1}'
+
+    # Generate the rigid wing manual commands
+    if self.states["Left"]:
+      # Set to max lift Starboard tack
+      string += ',"rigid_wing_cmd":{"state":1,"heel":0,"max_heel":1,"servo_pos":60}'
+    elif self.states["Right"]:
+      # Set to max lift Port tack
+      string += ',"rigid_wing_cmd":{"state":3,"heel":0,"max_heel":1,"servo_pos":60}'
+
+    elif self.states["Down"]:
+      # Set to no lift
+      string += ',"rigid_wing_cmd":{"state":0,"heel":0,"max_heel":1,"servo_pos":60}'
+    # End the string to send
     string += "}"
     return string
 
