@@ -89,14 +89,14 @@ class ParserMain(threading.Thread):
     # Generate the rigid wing manual commands
     if self.states["Left"]:
       # Set to max lift Starboard tack
-      string += ',"rigid_wing_cmd":{"state":1,"heel":0,"max_heel":1,"servo_pos":60}'
+      string += ',"rigid_wing_cmd":{"state":7,"heel":0,"max_heel":1,"servo_pos":15}'
     elif self.states["Right"]:
       # Set to max lift Port tack
-      string += ',"rigid_wing_cmd":{"state":3,"heel":0,"max_heel":1,"servo_pos":60}'
+      string += ',"rigid_wing_cmd":{"state":7,"heel":0,"max_heel":1,"servo_pos":85}'
 
     elif self.states["Down"]:
       # Set to no lift
-      string += ',"rigid_wing_cmd":{"state":0,"heel":0,"max_heel":1,"servo_pos":60}'
+      string += ',"rigid_wing_cmd":{"state":7,"heel":0,"max_heel":1,"servo_pos":50}'
     # End the string to send
     string += "}"
     return string
